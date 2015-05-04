@@ -1,0 +1,69 @@
+---
+- hosts: zookeeper-nodes
+  vars:
+     # Remote Destination path on Zookeeper Nodes.
+     remote_dest_path: /root/ansible/zookeeper
+
+     # Source Base path where the ansible script is running.
+     src_base_path: /root/ansible_scripts/ansible_zookeeper_tarball
+
+     # Data Storage path on Destination Zookeeper Nodes.
+     zookeeper_data_store: /data1/ansible/zookeeper
+
+     # Logging Directory on Destination Zookeeper Nodes
+     zookeeper_logging: /data1/ansible/zookeeper_logging
+
+     # Zookeeper Install Directory on Destination Zookeeper Nodes.
+     zookeeper_base: /opt/zookeeper
+
+  # using `root` user the do all the work.
+  remote_user: root
+
+  tasks:
+
+  # Assuming that we have already downloaded `zookeeper` in `/root/ansible_scripts/learn_ansible/zookeeper`
+  # http://archive.cloudera.com/cdh5/cdh/5/zookeeper-3.4.5-cdh5.1.2.tar.gz
+  
+  - name: Create a Remote Directory to Store our Data.
+    file: path={{ remote_dest_path }} state=directory
+
+  - name: Copy Archive from ConfMgr to Detination Servers.
+    copy: src={{ src_base_path }}/zookeeper/zookeeper-3.4.5-cdh5.1.2.tar.gz dest={{ remote_dest_path }}
+
+  # Password Generated using python command below.
+  #     python -c "from passlib.hash import sha512_crypt; import getpass; print sha512_crypt.encrypt(getpass.getpass())"
+  # Current `hdadmin` password is = hdadmin@123
+
+  - name: Create a User `hdadmin` for all our Hadoop Modules.
+    user: name=hdadmin password=$6$rounds=40000$1qjG/hovLZOkcerH$CK4Or3w8rR3KabccowciZZUeD.nIwR/VINUa2uPsmGK/2xnmOt80TjDwbof9rNvnYY6icCkdAR2qrFquirBtT1
+
+  - name: UnArchive the Package in Destination Server.
+    unarchive: src={{ remote_dest_path }}/zookeeper-3.4.5-cdh5.1.2.tar.gz dest=/opt owner=hdadmin group=hdadmin 
+
+  - name: Change Directory Permissions.
+    file: path=/opt/zookeeper-3.4.5-cdh5.1.2 owner=hdadmin group=hdadmin recurse=yes
+
+  - name: Creating a Symbolic Link in /opt/zookeeper.
+    file: src=/opt/zookeeper-3.4.5-cdh5.1.2 path={{ zookeeper_base }} state=link owner=hdadmin group=hdadmin
+
+  - name: Updating Configuration File in Zookeeper.
+    template: src=zookeeper/zoo.cfg dest={{ zookeeper_base }}/conf/zoo.cfg  owner=hdadmin group=hdadmin
+
+  - name: Updating Logging Configuration File in Zookeeper.
+    template: src=zookeeper/log4j.properties dest={{ zookeeper_base }}/conf/log4j.properties  owner=hdadmin group=hdadmin
+
+  - name: Creating a directory for Zookeeper.
+    file: path={{ zookeeper_data_store }} owner=hdadmin group=hdadmin state=directory
+
+  - name: Creating a Logging directory for Zookeeper.
+    file: path={{ zookeeper_logging }} owner=hdadmin group=hdadmin state=directory
+
+  - name: Initializing `myid` File for Zookeeper.
+    command: creates={{ zookeeper_data_store }}/myid {{ zookeeper_base }}/bin/zkServer-initialize.sh --myid={{ zookeeper_id }}
+    sudo: yes
+    sudo_user: hdadmin
+
+  - name: Starting Zookeeper Server.
+    command: chdir={{ zookeeper_logging }} sh {{ zookeeper_base }}/bin/zkServer.sh start
+    sudo: yes
+    sudo_user: hdadmin

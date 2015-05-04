@@ -1,0 +1,18 @@
+---
+- hosts: zookeeper-nodes
+  vars:
+     # Logging Directory on Destination Zookeeper Nodes
+     zookeeper_logging: /data1/ansible/zookeeper_logging
+
+     # Zookeeper Install Directory on Destination Zookeeper Nodes.
+     zookeeper_base: /opt/zookeeper
+
+  # using `root` user the do all the work.
+  remote_user: root
+
+  tasks:
+
+  - name: Starting Zookeeper Server.
+    command: chdir={{ zookeeper_logging }} sh {{ zookeeper_base }}/bin/zkServer.sh stop
+    sudo: yes
+    sudo_user: hdadmin

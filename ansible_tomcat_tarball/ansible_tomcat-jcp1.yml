@@ -1,0 +1,57 @@
+---
+- hosts: tomcat-jcp1
+  vars:
+     # Remote Destination path on tomcat Nodes.
+     remote_dest_path: /data/tomcat-jcp1
+
+     # Source Base path where the ansible script is running.
+     src_base_path: /root/ansible_scripts/ansible_tomcat_tarball
+
+     # Tomcat Install Directory on Destination Tomcat Nodes.
+     tomcat_base: /opt/tomcat-jcp1
+
+  # using `root` user the do all the work.
+  remote_user: root
+
+  tasks:
+
+  - name: Create a Remote Directory to Store our Data.
+    file: path={{ remote_dest_path }} state=directory
+
+  - name: Copy Archive from ConfMgr to Detination Servers.
+    copy: src={{ src_base_path }}/tomcat-jcp1/apache-tomcat-7.0.59.tar.gz dest={{ remote_dest_path }}
+
+  # Password Generated using python command below.
+  #     python -c "from passlib.hash import sha512_crypt; import getpass; print sha512_crypt.encrypt(getpass.getpass())"
+  # Current `hdadmin` password is = hdadmin@123
+
+  #- name: Create a User `hdadmin` for all our Hadoop Modules.
+  #  user: name=hdadmin password=$6$rounds=40000$1qjG/hovLZOkcerH$CK4Or3w8rR3KabccowciZZUeD.nIwR/VINUa2uPsmGK/2xnmOt80TjDwbof9rNvnYY6icCkdAR2qrFquirBtT1
+
+  - name: UnArchive the Package in Destination Server.
+    unarchive: src={{ remote_dest_path }}/apache-tomcat-7.0.59.tar.gz dest={{ remote_dest_path }} 
+
+  #- name: Change Directory Permissions.
+  #  file: path=/opt/apache-tomcat-7.0.59 owner=hdadmin group=hdadmin recurse=yes
+
+  - name: Creating a Symbolic Link in /opt/tomcat-jcp1.
+    file: src={{ remote_dest_path }}/apache-tomcat-7.0.59 path={{ tomcat_base }} state=link
+
+  - name: Updating Configuration File in Tomcat.
+    template: src=tomcat-jcp1/server.xml dest={{ tomcat_base }}/conf/server.xml
+
+  - name: Updating JVMParameter Configuration File in Tomcat.
+    copy: src=tomcat-jcp1/setenv.sh dest={{ tomcat_base }}/bin
+
+  - name: Change File Permission
+    file: path={{ tomcat_base }}/bin/setenv.sh mode=0777
+
+  - name: Configuring Start Script
+    copy: src=tomcat-jcp1/tomcat-start.sh dest={{ tomcat_base }}/bin
+
+  - name: Change File Permission of Start Script
+    file: path={{ tomcat_base }}/bin/tomcat-start.sh mode=0777
+
+  - name: Starting Tomcat Server
+    command: sh {{ tomcat_base }}/bin/tomcat-start.sh
+    
