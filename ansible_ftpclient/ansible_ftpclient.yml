@@ -1,0 +1,17 @@
+---
+- hosts: ftpclients
+
+
+  # using `root` user the do all the work.
+  remote_user: root
+  
+  tasks:
+
+  - name: Installing latest version of ftp client
+    yum: name=ftp state=latest
+
+  - name: Installing latest version of vsftpd
+    yum: name=vsftpd state=latest
+
+  - name: Ensure vsftpd is running
+    service: name=vsftpd state=started enabled=yes
