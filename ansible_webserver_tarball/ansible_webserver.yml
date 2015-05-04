@@ -1,0 +1,28 @@
+---
+- hosts: webservers
+  vars:
+     # Variable Declaration
+     http_port: 80
+     max_clients: 500
+     server_tokens: Prod
+
+
+  # using `root` user the do all the work.
+  remote_user: root
+
+  tasks:
+
+  - name: Installing Latest Version Of Apache
+    yum: name=httpd state=latest
+
+  - name: Setting up configuration
+    template: src=webserver/httpd.conf dest=/etc/httpd/conf/httpd.conf 
+    #notify:
+    #- restart apache
+ 
+  - name: Ensure Apache is running (Enabling it at boot)
+    service: name=httpd state=started enabled=yes
+  #handlers:
+  #  - name: restart apache
+  #    service: name=httpd state=restarted
+
