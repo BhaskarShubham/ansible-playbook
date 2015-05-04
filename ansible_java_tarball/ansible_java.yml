@@ -1,0 +1,51 @@
+---
+- hosts: java-nodes
+  vars:
+     # Remote Destination path on Java Nodes.
+     remote_dest_path: /root/ansible/java
+
+     # Source Base path where the ansible script is running.
+     src_base_path: /root/ansible_scripts/ansible_java_tarball
+
+     # Java Install Directory on Destination Java Nodes.
+     java_base: /opt/java
+
+  # using `root` user the do all the work.
+  remote_user: root
+
+  tasks:
+
+  - name: Create a Remote Directory to Store our Data.
+    file: path={{ remote_dest_path }} state=directory
+
+  - name: Copy Archive from ConfMgr to Detination Servers.
+    copy: src={{ src_base_path }}/java/jdk-8u45-linux-x64.tar.gz dest={{ remote_dest_path }}
+
+  # Password Generated using python command below.
+  #     python -c "from passlib.hash import sha512_crypt; import getpass; print sha512_crypt.encrypt(getpass.getpass())"
+  # Current `hdadmin` password is = hdadmin@123
+
+  #- name: Create a User `hdadmin` for all our Modules.
+  #  user: name=hdadmin password=$6$rounds=40000$1qjG/hovLZOkcerH$CK4Or3w8rR3KabccowciZZUeD.nIwR/VINUa2uPsmGK/2xnmOt80TjDwbof9rNvnYY6icCkdAR2qrFquirBtT1
+
+  - name: UnArchive the Package in Destination Server.
+    unarchive: src={{ remote_dest_path }}/jdk-8u45-linux-x64.tar.gz dest=/opt
+
+  #- name: Change Directory Permissions.
+  #  file: path=/opt/jdk1.8.0_45 owner=hdadmin group=hdadmin recurse=yes
+
+  - name: Creating a Symbolic Link in /opt/java.
+    file: src=/opt/jdk1.8.0_45 path={{ java_base }} state=link
+
+  - name: Make Java available for system.
+    command: 'alternatives --install "/usr/bin/java" "java" "{{java_base}}/bin/java" 2000'
+  
+  - name: Make Javac available for system.
+    command: 'alternatives --install "/usr/bin/javac" "javac" "{{java_base}}/bin/javac" 2000'
+
+  - name: Make Javaws available for system.
+    command: 'alternatives --install "/usr/bin/javaws" "javaws" "{{java_base}}/bin/javaws" 2000'
+  
+  - name: Make Jps available for system.
+    command: 'alternatives --install "/usr/bin/jps" "jps" "{{java_base}}/bin/jps" 2000'
+
