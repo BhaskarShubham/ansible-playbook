@@ -1,0 +1,24 @@
+---
+- hosts: ftpclients
+
+
+  # using `root` user the do all the work.
+  remote_user: root
+  
+  tasks:
+
+  # Password Generated using python command below.
+   # python -c "from passlib.hash import sha512_crypt; import getpass; print sha512_crypt.encrypt(getpass.getpass())"
+   # Current `hdadmin` password is = hdadmin@123
+
+  - name: Create a User `hdadmin` for all our Modules.
+    user: name=hdadmin password=$6$rounds=40000$1qjG/hovLZOkcerH$CK4Or3w8rR3KabccowciZZUeD.nIwR/VINUa2uPsmGK/2xnmOt80TjDwbof9rNvnYY6icCkdAR2qrFquirBtT1
+
+  - name: Installing latest version of ftp client
+    yum: name=ftp state=latest
+
+  - name: Installing latest version of vsftpd
+    yum: name=vsftpd state=latest
+
+  - name: Ensure vsftpd is running
+    service: name=vsftpd state=started enabled=yes
